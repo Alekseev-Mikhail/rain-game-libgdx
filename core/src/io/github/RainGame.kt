@@ -8,12 +8,14 @@ import com.badlogic.gdx.audio.Sound
 import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
-import com.badlogic.gdx.math.MathUtils
 import com.badlogic.gdx.math.Rectangle
 import com.badlogic.gdx.math.Vector3
 import com.badlogic.gdx.utils.ScreenUtils
 import com.badlogic.gdx.utils.TimeUtils
-
+import java.util.Timer
+import kotlin.concurrent.schedule
+import kotlin.random.Random
+import kotlin.time.Duration.Companion.seconds
 
 class RainGame : ApplicationAdapter() {
     private lateinit var camera: OrthographicCamera
@@ -25,7 +27,8 @@ class RainGame : ApplicationAdapter() {
     private lateinit var bucket: Rectangle
 
     private val raindrops = mutableListOf<Rectangle>()
-    private val lastDropTime: Long = 0
+    private var lastDropTime: Long = 0
+    private val timer = Timer()
 
     override fun create() {
         camera = OrthographicCamera()
@@ -49,9 +52,7 @@ class RainGame : ApplicationAdapter() {
     override fun render() {
         ScreenUtils.clear(0f, 0f, 0.2f, 1f)
         camera.update()
-        batch.begin()
 
-        val speed = 600
         if (Gdx.input.isTouched) {
             val touchPos = Vector3()
             touchPos[Gdx.input.x.toFloat(), Gdx.input.y.toFloat()] = 0f
@@ -61,34 +62,51 @@ class RainGame : ApplicationAdapter() {
         }
         if (Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
             if (bucket.x > 0) {
-                bucket.x -= speed * Gdx.graphics.deltaTime
+                bucket.x -= 600 * Gdx.graphics.deltaTime
             } else {
                 bucket.x = 0f
             }
         }
         if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
             if (bucket.x + bucket.width < camera.viewportWidth) {
-                bucket.x += speed * Gdx.graphics.deltaTime
+                bucket.x += 600 * Gdx.graphics.deltaTime
             } else {
                 bucket.x = camera.viewportWidth - bucket.width
             }
         }
 
+        if (TimeUtils.nanoTime() - lastDropTime > 1.seconds.inWholeNanoseconds) spawnRaindrop()
+
+        raindrops.forEach { rec ->
+            rec.y -= 5
+            if (rec.overlaps(bucket)) {
+                dropSound.play()
+                raindrops.remove(rec)
+            }
+        }
+
+        batch.begin()
         batch.draw(bucketImage, bucket.x, bucket.y)
+        raindrops.forEach { rec ->
+            batch.draw(dropletImage, rec.x, rec.y)
+        }
         batch.end()
     }
 
     override fun dispose() {
         batch.dispose()
         bucketImage.dispose()
+        dropletImage.dispose()
+        dropSound.dispose()
+        rainMusic.dispose()
     }
 
     private fun spawnRaindrop() {
         val raindrop = Rectangle()
-        raindrop.x = MathUtils.random(0, 800 - 64).toFloat()
-        raindrop.y = 480f
         raindrop.width = 64f
         raindrop.height = 64f
+        raindrop.x = Random.nextInt(0, (camera.viewportWidth - raindrop.width).toInt()).toFloat()
+        raindrop.y = 480f
         raindrops.add(raindrop)
         lastDropTime = TimeUtils.nanoTime()
     }

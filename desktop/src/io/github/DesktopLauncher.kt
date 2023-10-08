@@ -9,6 +9,6 @@ fun main() {
     config.setForegroundFPS(60)
     config.setWindowedMode(800, 480)
     config.setResizable(false)
-    config.setTitle("Dima Lox")
+    config.setTitle("Test LibGDX Game")
     Lwjgl3Application(RainGame(), config)
 }
